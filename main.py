@@ -41,16 +41,16 @@ class GoogleFormAutomation:
         if self.driver:
             self.driver.quit()
 
-    def submit_form(self, data: Dict[str, str]) -> bool:
+    def submit_form(self, common_data: Dict[str, str], blog_link: str) -> bool:
         """
         Submit a single form entry.
         
         Args:
-            data: Dictionary containing:
+            common_data: Dictionary containing:
                 - name: 이름
-                - blog_link: 블로그링크
                 - til_date: TIL 작성 일자
                 - weather: 오늘의 날씨
+            blog_link: The blog link to submit
         
         Returns:
             bool: True if submission was successful, False otherwise
@@ -66,15 +66,15 @@ class GoogleFormAutomation:
 
             # Fill name (이름)
             name_field = wait.until(EC.presence_of_element_located((By.XPATH, "//input[@type='text']")))
-            name_field.send_keys(data['name'])
+            name_field.send_keys(common_data['name'])
 
             # Fill blog link (블로그링크)
             blog_fields = self.driver.find_elements(By.XPATH, "//input[@type='text']")
-            blog_fields[1].send_keys(data['blog_link'])
+            blog_fields[1].send_keys(blog_link)
 
             # Fill TIL date (TIL 작성 일자)
             date_input = self.driver.find_element(By.XPATH, "//input[@type='date']")
-            date_input.send_keys(data['til_date'])
+            date_input.send_keys(common_data['til_date'])
 
             # Select weather (오늘의 날씨)
             weather_mapping = {
@@ -85,7 +85,7 @@ class GoogleFormAutomation:
             }
             
             weather_option = wait.until(EC.element_to_be_clickable(
-                (By.XPATH, weather_mapping.get(data['weather'], weather_mapping['맑음']))
+                (By.XPATH, weather_mapping.get(common_data['weather'], weather_mapping['맑음']))
             ))
             weather_option.click()
 
@@ -100,7 +100,7 @@ class GoogleFormAutomation:
                 (By.XPATH, "//div[contains(text(), '응답이 기록되었습니다')]")
             ))
 
-            logger.info(f"Form submitted successfully for {data['name']}")
+            logger.info(f"Form submitted successfully for blog link: {blog_link}")
             return True
 
         except TimeoutException as e:
@@ -110,12 +110,13 @@ class GoogleFormAutomation:
             logger.error(f"Error submitting form: {e}")
             return False
 
-    def submit_multiple_entries(self, entries: List[Dict[str, str]]) -> bool:
+    def submit_multiple_links(self, common_data: Dict[str, str], blog_links: List[str]) -> bool:
         """
-        Submit multiple form entries.
+        Submit multiple blog links with the same common data.
         
         Args:
-            entries: List of dictionaries containing form data
+            common_data: Dictionary containing common form data (name, date, weather)
+            blog_links: List of blog links to submit
         
         Returns:
             bool: True if all submissions were successful, False otherwise
@@ -124,10 +125,10 @@ class GoogleFormAutomation:
             self.setup_driver()
             success = True
 
-            for entry in entries:
-                if not self.submit_form(entry):
+            for link in blog_links:
+                if not self.submit_form(common_data, link):
                     success = False
-                    logger.error(f"Failed to submit entry for {entry.get('name', 'unknown')}")
+                    logger.error(f"Failed to submit entry for link: {link}")
 
             return success
 
@@ -139,28 +140,26 @@ def main():
     # Initialize the automation class
     form_automation = GoogleFormAutomation()
 
-    # Example form entries
-    entries = [
-        {
-            'name': '홍길동',
-            'blog_link': 'https://blog.example.com/hong',
-            'til_date': '2024-12-30',
-            'weather': '맑음'
-        },
-        {
-            'name': '김철수',
-            'blog_link': 'https://blog.example.com/kim',
-            'til_date': '2024-12-30',
-            'weather': '흐림'
-        }
+    # Common data that will be used for all submissions
+    common_data = {
+        'name': '홍길동',
+        'til_date': '2024-12-30',
+        'weather': '맑음'
+    }
+
+    # List of blog links to submit
+    blog_links = [
+        'https://blog.example.com/post1',
+        'https://blog.example.com/post2',
+        'https://blog.example.com/post3'
     ]
 
-    # Submit multiple entries
-    success = form_automation.submit_multiple_entries(entries)
+    # Submit multiple blog links with the same common data
+    success = form_automation.submit_multiple_links(common_data, blog_links)
     if success:
-        logger.info("All entries submitted successfully")
+        logger.info("All blog links submitted successfully")
     else:
-        logger.error("Some entries failed to submit")
+        logger.error("Some blog links failed to submit")
 
 if __name__ == '__main__':
     main()
